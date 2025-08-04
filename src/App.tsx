@@ -10,7 +10,7 @@ import RegisterPage from './pages/RegisterPage';
 // Import shared components
 import AppInitializer from './components/shared/AppInitializer';
 import NotificationContainer from './components/shared/NotificationContainer';
-import BackendStatus from './components/shared/BackendStatus';
+// import BackendStatus from './components/shared/BackendStatus';
 
 /**
  * Main App component with routing and authentication
@@ -54,7 +54,7 @@ function App() {
           <NotificationContainer />
           
           {/* Backend status indicator (for development) */}
-          {import.meta.env.DEV && <BackendStatus />}
+          {/* {import.meta.env.DEV && <BackendStatus />} */}
         </div>
       </Router>
     </AppInitializer>
