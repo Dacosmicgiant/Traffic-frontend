@@ -1,34 +1,80 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useAuth } from './hooks/useAuth';
+import { useTheme } from './store/uiStore';
 
+// Import pages (we'll create these next)
+import LandingPage from './pages/LandingPage';
+import ChatPage from './pages/ChatPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+
+// Import shared components (we'll create these later)
+import LoadingSpinner from './components/shared/LoadingSpinner';
+import NotificationContainer from './components/shared/NotificationContainer';
+
+/**
+ * Main App component with routing and authentication
+ */
 function App() {
-  const [count, setCount] = useState(0)
+  const { isAuthenticated, isLoading, checkAuth } = useAuth();
+  const { theme } = useTheme();
+
+  // Check authentication status on app startup
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  // Apply theme to document root
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
+  // Show loading spinner while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <LoadingSpinner size="large" />
+      </div>
+    );
+  }
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <Router>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<LandingPage />} />
+          <Route 
+            path="/login" 
+            element={
+              isAuthenticated ? <Navigate to="/chat" replace /> : <LoginPage />
+            } 
+          />
+          <Route 
+            path="/register" 
+            element={
+              isAuthenticated ? <Navigate to="/chat" replace /> : <RegisterPage />
+            } 
+          />
+          
+          {/* Protected Routes */}
+          <Route 
+            path="/chat" 
+            element={
+              isAuthenticated ? <ChatPage /> : <Navigate to="/login" replace />
+            } 
+          />
+          
+          {/* Catch all route - redirect to home */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+        
+        {/* Global notification container */}
+        <NotificationContainer />
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    </Router>
+  );
 }
 
-export default App
+export default App;
