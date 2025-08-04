@@ -1,11 +1,14 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useChat } from '../hooks/useChat';
 import { useNotifications } from '../store/uiStore';
+import { useIsMobile } from '../hooks/useMediaQuery';
+import { useChatKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import { useTheme } from '../store/uiStore';
 import ChatSidebar from '../components/chat/ChatSidebar';
 import ChatHeader from '../components/chat/ChatHeader';
 import ChatMessage from '../components/chat/ChatMessage';
 import ChatInput from '../components/chat/ChatInput';
-
+import HelpModal from '../components/chat/HelpModal';
 
 /**
  * Main chat page component
@@ -18,11 +21,27 @@ function ChatPage() {
     isTyping,
     error,
     loadConversations,
-    sendMessage
+    sendMessage,
+    startNewConversation
   } = useChat();
   
   const { addNotification } = useNotifications();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const isMobile = useIsMobile();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [helpModalOpen, setHelpModalOpen] = useState(false);
+  const { toggleTheme } = useTheme();
+
+  // Keyboard shortcuts
+  useChatKeyboardShortcuts(
+    () => {
+      startNewConversation();
+      setSidebarOpen(false);
+    },
+    toggleTheme,
+    () => inputRef.current?.focus()
+  );
 
   // Load conversations on component mount
   useEffect(() => {
@@ -46,26 +65,60 @@ function ChatPage() {
     }
   };
 
-  // Handle PDF export (placeholder for now)
-  const handleExportPDF = () => {
-    addNotification({
-      type: 'info',
-      message: 'PDF export feature coming soon!'
-    });
+  // Handle PDF export with notifications
+  const handlePDFExported = (success: boolean, filename?: string) => {
+    if (success) {
+      addNotification({
+        type: 'success',
+        message: `Conversation exported successfully${filename ? ` as ${filename}` : ''}!`
+      });
+    } else {
+      addNotification({
+        type: 'error',
+        message: 'Failed to export PDF. Please try again.'
+      });
+    }
   };
 
   return (
-    <div className="h-screen flex bg-gray-50 dark:bg-gray-900">
+    <div className="h-screen flex bg-gray-50 dark:bg-gray-900 relative">
+      {/* Mobile sidebar overlay */}
+      {isMobile && sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      
       {/* Sidebar */}
-      <ChatSidebar />
+      <div className={`${
+        isMobile 
+          ? `fixed left-0 top-0 h-full z-50 transform transition-transform duration-300 ${
+              sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+            }`
+          : 'relative'
+      }`}>
+        <ChatSidebar onClose={() => setSidebarOpen(false)} />
+      </div>
       
       {/* Main chat area */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
         <ChatHeader 
           conversation={currentConversation}
-          onExportPDF={handleExportPDF}
+          onPDFExported={handlePDFExported}
+          onOpenHelp={() => setHelpModalOpen(true)}
         />
+        
+        {/* Mobile menu button */}
+        {isMobile && (
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="fixed top-4 left-4 z-30 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
+          >
+            <span className="text-lg">☰</span>
+          </button>
+        )}
         
         {/* Messages area */}
         <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
@@ -153,8 +206,15 @@ function ChatPage() {
           onSendMessage={handleSendMessage}
           isLoading={isLoading}
           isTyping={isTyping}
+          ref={inputRef}
         />
       </div>
+      
+      {/* Help modal */}
+      <HelpModal 
+        isOpen={helpModalOpen}
+        onClose={() => setHelpModalOpen(false)}
+      />
     </div>
   );
 }

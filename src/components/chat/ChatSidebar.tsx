@@ -5,11 +5,15 @@ import ConversationItem from './ConversationItem';
 import Button from '../shared/Button';
 import LoadingSpinner from '../shared/LoadingSpinner';
 
+interface ChatSidebarProps {
+  onClose?: () => void;
+}
+
 /**
  * Chat sidebar component
  * Shows conversation list and user info
  */
-function ChatSidebar() {
+function ChatSidebar({ onClose }: ChatSidebarProps) {
   const { 
     conversations, 
     currentConversation, 
@@ -82,7 +86,10 @@ function ChatSidebar() {
                 key={conversation.id}
                 conversation={conversation}
                 isActive={currentConversation?.id === conversation.id}
-                onClick={() => selectConversation(conversation.id)}
+                onClick={() => {
+                  selectConversation(conversation.id);
+                  onClose?.(); // Close mobile sidebar
+                }}
                 onDelete={() => handleDeleteConversation(conversation.id)}
               />
             ))}

@@ -1,16 +1,34 @@
+import { useState } from 'react';
 import type { ConversationWithMessages } from '../../api/types';
+import { exportConversationToPDF } from '../../utils/pdfExport';
 import Button from '../shared/Button';
 
 interface ChatHeaderProps {
   conversation: ConversationWithMessages | null;
-  onExportPDF?: () => void;
+  onPDFExported?: (success: boolean, filename?: string) => void;
+  onOpenHelp?: () => void;
 }
 
 /**
  * Chat header component
  * Shows current conversation title and actions
  */
-function ChatHeader({ conversation, onExportPDF }: ChatHeaderProps) {
+function ChatHeader({ conversation, onPDFExported, onOpenHelp }: ChatHeaderProps) {
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportPDF = async () => {
+    if (!conversation) return;
+
+    setIsExporting(true);
+    try {
+      const result = await exportConversationToPDF(conversation);
+      onPDFExported?.(result.success, result.filename);
+    } catch (error) {
+      onPDFExported?.(false);
+    } finally {
+      setIsExporting(false);
+    }
+  };
   
   return (
     <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
@@ -44,16 +62,18 @@ function ChatHeader({ conversation, onExportPDF }: ChatHeaderProps) {
             <Button
               variant="outline"
               size="small"
-              onClick={onExportPDF}
+              onClick={handleExportPDF}
+              isLoading={isExporting}
             >
-              Export PDF
+              {isExporting ? 'Exporting...' : 'Export PDF'}
             </Button>
           )}
           
           {/* Info button */}
           <button
             className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            title="About Traffic AI"
+            title="Help & Shortcuts"
+            onClick={onOpenHelp}
           >
             <span className="text-lg">ℹ️</span>
           </button>

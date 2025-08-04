@@ -1,5 +1,4 @@
-import type {  KeyboardEvent, FormEvent } from 'react';
-import { useState } from 'react';
+import { useState, type KeyboardEvent, type FormEvent, forwardRef, useImperativeHandle, useRef } from 'react';
 import { UI_CONFIG } from '../../utils/constants';
 import Button from '../shared/Button';
 
@@ -14,13 +13,17 @@ interface ChatInputProps {
  * Chat input component for sending messages
  * Handles text input, send button, and keyboard shortcuts
  */
-function ChatInput({ 
+const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(({ 
   onSendMessage, 
   isLoading = false, 
   isTyping = false,
   placeholder = "Ask me about Indian traffic laws..."
-}: ChatInputProps) {
+}, ref) => {
   const [message, setMessage] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Expose focus method to parent component
+  useImperativeHandle(ref, () => textareaRef.current!);
 
   // Handle form submission
   const handleSubmit = (e: FormEvent) => {
@@ -55,6 +58,7 @@ function ChatInput({
         {/* Message input */}
         <div className="flex-1">
           <textarea
+            ref={textareaRef}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -101,6 +105,8 @@ function ChatInput({
       </form>
     </div>
   );
-}
+});
+
+ChatInput.displayName = 'ChatInput';
 
 export default ChatInput;
