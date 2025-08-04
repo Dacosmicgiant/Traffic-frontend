@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { useNotifications } from '../store/uiStore';
 import { registerUser, loginUser, logoutUser, getCurrentUser } from '../api/auth';
 import type { UserCreate, UserLogin } from '../api/types';
+import { STORAGE_KEYS } from '../utils/constants';
 
 /**
  * Custom hook for authentication operations
@@ -106,25 +108,48 @@ export function useAuth() {
    * Check if user is still authenticated (validate token)
    */
   const checkAuth = async (): Promise<boolean> => {
-    if (!authStore.token) return false;
-
-    try {
-      const response = await getCurrentUser();
-      
-      if (response.success && response.data) {
-        // Update user data in case it changed
-        authStore.updateUser(response.data);
-        return true;
-      } else {
-        // Token invalid, logout
-        authStore.logout();
-        return false;
-      }
-    } catch (error) {
+    // Check if token exists in localStorage
+    const token = localStorage.getItem(STORAGE_KEYS.authToken);
+    
+    if (!token) {
       authStore.logout();
       return false;
     }
+
+    // If we have a token but no user in store, validate with backend
+    if (!authStore.user) {
+      authStore.setLoading(true);
+      
+      try {
+        const response = await getCurrentUser();
+        
+        if (response.success && response.data) {
+          // Restore user data
+          authStore.login(token, response.data);
+          return true;
+        } else {
+          // Token invalid, logout
+          authStore.logout();
+          return false;
+        }
+      } catch (error) {
+        authStore.logout();
+        return false;
+      } finally {
+        authStore.setLoading(false);
+      }
+    }
+    
+    return true;
   };
+
+  // Initialize auth state on hook creation
+  useEffect(() => {
+    const token = localStorage.getItem(STORAGE_KEYS.authToken);
+    if (token && !authStore.isAuthenticated) {
+      checkAuth();
+    }
+  }, []);
 
   return {
     // State

@@ -1,4 +1,5 @@
 import { useChatStore } from '../store/chatStore';
+import { useAuthStore } from '../store/authStore';
 import { useNotifications } from '../store/uiStore';
 import { 
   loadConversationsList, 
@@ -6,7 +7,7 @@ import {
   deleteConversation 
 } from '../api/conversations';
 import { sendChatMessage } from '../api/chat';
-import type { Message } from '../api/types';
+import { type Message } from '../api/types';
 
 /**
  * Custom hook for chat operations
@@ -14,7 +15,13 @@ import type { Message } from '../api/types';
  */
 export function useChat() {
   const chatStore = useChatStore();
+  const { isAuthenticated } = useAuthStore();
   const { addNotification } = useNotifications();
+
+  // Clear chat data when user logs out
+  if (!isAuthenticated && chatStore.conversations.length > 0) {
+    chatStore.clearChat();
+  }
 
   /**
    * Load all conversations for the current user

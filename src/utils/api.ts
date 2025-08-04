@@ -56,12 +56,16 @@ class ApiClient {
         return response;
       },
       (error) => {
+        console.error('API Error:', error);
+        
         // Handle common error scenarios
         if (error.response?.status === 401) {
           // Token expired or invalid - clear auth data
           this.clearAuthData();
-          // Redirect to login (you can emit an event here)
-          window.location.href = '/login';
+          // Only redirect if we're not already on auth pages
+          if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
+            window.location.href = '/login';
+          }
         }
         
         return Promise.reject(error);
@@ -149,14 +153,22 @@ class ApiClient {
       errorMessage = error.response.data?.detail || error.response.statusText;
       statusCode = error.response.status;
     } else if (error.request) {
-      // Request was made but no response received
-      errorMessage = "Network error - please check your connection";
+      // Request was made but no response received (CORS, network, etc.)
+      if (error.code === 'ERR_NETWORK') {
+        errorMessage = "Cannot connect to server. Please check if the backend is running.";
+      } else {
+        errorMessage = "Network error - please check your connection and ensure the backend is running.";
+      }
     } else {
       // Something else happened
       errorMessage = error.message || errorMessage;
     }
 
-    console.error('API Error:', errorMessage);
+    console.error('API Error Details:', {
+      message: errorMessage,
+      status: statusCode,
+      error: error
+    });
 
     return {
       success: false,
